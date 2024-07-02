@@ -1,0 +1,127 @@
+import imaplib
+import email
+from dateutil import parser
+from email.header import decode_header
+from datetime import datetime
+from email.utils import parseaddr
+from bs4 import BeautifulSoup
+import re
+#password = 'vjwi quwv etwg fqez' для gmail
+#password = 'vA0yENefwJVmQehkBfqQ' для mail
+user = 'superfed3@mail.ru'
+password = 'vA0yENefwJVmQehkBfqQ'
+imap_url = 'imap.mail.ru'
+
+
+def decode_text(text, charset='utf-8'):
+    try:
+        return text.decode(charset) if charset else text.decode('utf-8')
+    except Exception as e:
+        print(f"Error decoding text: {e}")
+        return text.decode('utf-8', errors='replace')
+    
+def parse_attachment(part):
+    filename = part.get_filename()
+    if filename:
+        filename = decode_header(filename)
+        decoded_filename = ''.join([str(text, charset or 'utf-8') if isinstance(text, bytes) else text for text, charset in filename])
+        return {
+            'filename': decoded_filename,
+            'content_type': part.get_content_type()
+        }
+    return None
+def clean_body(text):
+    cleaned_text = re.sub(r'\n\d+\.', '', text)
+    cleaned_text = cleaned_text.replace('\xa0', ' ').replace('\n', ' ').strip()
+    cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+    return cleaned_text
+
+def process_part(part):
+    attachments = []
+    body = None
+    html = None
+
+    for content_part in part.walk():
+        content_disposition = content_part.get('Content-Disposition', '')
+        content_type = content_part.get_content_type()
+
+        if content_disposition.startswith('attachment'):
+            attachment = parse_attachment(content_part)
+            if attachment:
+                attachments.append(attachment)
+        
+        elif content_type == 'text/plain':
+            if body is None:
+                body = ''
+            body += decode_text(content_part.get_payload(decode=True), content_part.get_content_charset())
+            body = clean_body(body)
+            
+        elif content_type == 'text/html':
+            if html is None:
+                html = ''
+            html += decode_text(content_part.get_payload(decode=True), content_part.get_content_charset())
+
+    data = {
+        'body': body,
+        'attachments': attachments
+    }
+    
+    return data
+def clean_date_string(date_string):
+    return re.sub(r'\(.*\)', '', date_string).strip()
+
+
+def parse_email(raw_email):
+    msg = email.message_from_bytes(raw_email)
+    email_account = email.utils.parseaddr(msg['From'])
+    email_account = email_account[1]
+    #print(f'Email: {email_account}')
+    
+   
+    
+    # Тема письма
+    subject = msg.get('Subject')
+    decoded_header = decode_header(subject)
+    topic = ''.join([str(text, charset or 'utf-8') if isinstance(text, bytes) else text for text, charset in decoded_header])
+    #print(f'Subject: {topic}')
+
+    
+    # Дата отправки
+    date_sent = msg.get('Date')
+    if date_sent:
+        date_sent = parser.parse(clean_date_string(date_sent))
+        #date_sent = datetime.strptime(date_sent, '%a, %d %b %Y %H:%M:%S %z')
+    #print(f"Date Sent: {date_sent}")
+    
+
+    received = msg.get_all('Received')
+    if received:
+        last_received = received[-1].split(';')[-1].strip()
+        date_received = parser.parse(clean_date_string(last_received))
+    else:
+        date_received = datetime.now()  
+    #print(f"Date Received: {date_received}")
+    body = process_part(msg)
+    data = {
+        'email' : email_account,
+        'topic' : topic,
+        'date_sent' : date_sent,
+        'date_recieved': date_received,
+        'body': body['body'],
+        'attachments': body['attachments']
+
+    }
+    print(data)
+    return data
+    
+
+con = imaplib.IMAP4_SSL(imap_url)
+con.login(user, password)
+con.select('INBOX')
+#150
+result, data = con.fetch(b'3', '(RFC822)')
+raw_email = data[0][1]
+parse_email(raw_email)
+
+
+con.logout()
