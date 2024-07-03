@@ -123,20 +123,24 @@ class EmailParser:
             imap_url = 'imap.mail.ru'
         elif user[user.find('@')+1:user.find('.')] == 'yandex':
             imap_url = 'imap.yandex.ru'
-        con = imaplib.IMAP4_SSL(imap_url)
-        con.login(user, password)
-        con.select('INBOX')
-        result, data = con.search(None, 'ALL')
+        try:
 
-        emails = []
+            con = imaplib.IMAP4_SSL(imap_url)
+            con.login(user, password)
+            con.select('INBOX')
+            result, data = con.search(None, 'ALL')
 
-        for num in data[0].split():
-            result, data = con.fetch(num, '(RFC822)')
-            raw_email = data[0][1]
-            email_data = EmailParser.parse_email(raw_email)
-            emails.append(email_data)
+            emails = []
 
-        con.logout()
-        return emails
+            for num in data[0].split():
+                result, data = con.fetch(num, '(RFC822)')
+                raw_email = data[0][1]
+                email_data = EmailParser.parse_email(raw_email)
+                emails.append(email_data)
+
+            con.logout()
+            return emails
+        except imaplib.IMAP4.error as e:
+            return 'Невозможно подключиться'
 
 #EmailParser.fetch_all_emails('mnfomenkov@yandex.ru', 'Raslovlevo1')
