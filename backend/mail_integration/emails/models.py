@@ -9,7 +9,7 @@ class EmailAccount(models.Model):
         return self.email
 
 class EmailMessage(models.Model):
-    email_account = models.CharField(max_length=255)
+    email = models.CharField(max_length=255)
     topic = models.CharField(max_length=255)
     date_sent = models.DateTimeField()
     date_recieved = models.DateTimeField()

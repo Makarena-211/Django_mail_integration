@@ -10,4 +10,4 @@ class LoginForm(forms.ModelForm):
 class MessageForm(forms.ModelForm):
     class Meta:
         model = EmailMessage
-        fields = ['email_account', 'topic', 'date_sent', 'date_recieved', 'body', 'attachments']
+        fields = ['email', 'topic', 'date_sent', 'date_recieved', 'body', 'attachments']
