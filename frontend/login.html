@@ -134,12 +134,12 @@ body {
         const loginForm = document.querySelector('.login-form');
         
         loginForm.addEventListener('submit', function(event) {
-            event.preventDefault(); // Остановить отправку формы, чтобы выполнить анимацию
+            event.preventDefault(); 
             console.log("Submit button clicked");
 
-            let totalTime = 5000; // Время в миллисекундах (5 секунд)
+            let totalTime = 5000; 
             let currentTime = 0;
-            let intervalTime = 100; // Интервал обновления прогресс-бара в миллисекундах (0.1 секунды)
+            let intervalTime = 100; 
             let intervalId = null;
 
             function updateProgressBar() {
@@ -149,12 +149,12 @@ body {
                 progressText.textContent = Math.round(progress) + '% Complete';
                 
                 if (currentTime >= totalTime) {
-                    clearInterval(intervalId); // Остановка таймера, когда время истекло
-                    loginForm.submit(); // Отправка формы после завершения анимации
+                    clearInterval(intervalId); 
+                    loginForm.submit(); 
                 }
             }
 
-            // Запуск таймера обновления прогресс-бара
+           
             intervalId = setInterval(updateProgressBar, intervalTime);
         });
     });

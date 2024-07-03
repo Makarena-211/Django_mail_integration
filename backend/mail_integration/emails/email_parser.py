@@ -6,11 +6,8 @@ from datetime import datetime
 from email.utils import parseaddr
 from bs4 import BeautifulSoup
 import re
-#password = 'vjwi quwv etwg fqez' для gmail
-#password = 'vA0yENefwJVmQehkBfqQ' для mail
-user = 'superfed3@mail.ru'
-password = 'vA0yENefwJVmQehkBfqQ'
-imap_url = 'imap.mail.ru'
+
+
 class EmailParser:
     @staticmethod
     def decode_text(text, charset='utf-8'):
@@ -83,23 +80,33 @@ class EmailParser:
         
         # Тема письма
         subject = msg.get('Subject')
-        decoded_header = decode_header(subject)
-        topic = ''.join([str(text, charset or 'utf-8') if isinstance(text, bytes) else text for text, charset in decoded_header])
+        if not isinstance(subject, (str, bytes)):
+            topic = ''
+        else:
+            decoded_header = decode_header(subject)
+            topic = ''.join([str(text, charset or 'utf-8') if isinstance(text, bytes) else text for text, charset in decoded_header])
         #print(f'Subject: {topic}')
 
         
         # Дата отправки
         date_sent = msg.get('Date')
         if date_sent:
-            date_sent = parser.parse(EmailParser.clean_date_string(date_sent))
+            try:
+                date_sent = parser.parse(EmailParser.clean_date_string(date_sent))
+            except parser.ParserError as e:
+                date_sent = datetime.now() 
+
             #date_sent = datetime.strptime(date_sent, '%a, %d %b %Y %H:%M:%S %z')
         #print(f"Date Sent: {date_sent}")
         
 
         received = msg.get_all('Received')
         if received:
-            last_received = received[-1].split(';')[-1].strip()
-            date_received = parser.parse(EmailParser.clean_date_string(last_received))
+            try:
+                last_received = received[-1].split(';')[-1].strip()
+                date_received = parser.parse(EmailParser.clean_date_string(last_received))
+            except parser.ParserError as e:
+                date_received = datetime.now()
         else:
             date_received = datetime.now()  
         #print(f"Date Received: {date_received}")
@@ -131,16 +138,14 @@ class EmailParser:
             result, data = con.search(None, 'ALL')
 
             emails = []
-
             for num in data[0].split():
                 result, data = con.fetch(num, '(RFC822)')
                 raw_email = data[0][1]
                 email_data = EmailParser.parse_email(raw_email)
                 emails.append(email_data)
-
             con.logout()
             return emails
         except imaplib.IMAP4.error as e:
             return 'Невозможно подключиться'
 
-#EmailParser.fetch_all_emails('mnfomenkov@yandex.ru', 'Raslovlevo1')
+
